@@ -1,39 +1,59 @@
 #!/usr/bin/python3
-"Python script that exports data to a JSON file"
+"""script that fetches info about a given employee using an api
+and exports it in json format
+"""
 import json
 import requests
 import sys
 
 
-def tasks_done(id):
-    '''Script that exports an employee TODO tasks to a json file
-        Parameters:
-        employee_id: Is an interger representing an employee id.
-    '''
-
-    url = "https://jsonplaceholder.typicode.com/users/{}".format(id)
-    response = requests.get(url)
-    response_json = response.json()
-    employee_name = response_json.get("name")
-
-    url = "https://jsonplaceholder.typicode.com/users/{}/todos".format(id)
-    todos = requests.get(url)
-    todos_json = todos.json()
-    task_list = []
-
-    for task in todos_json:
-        task_dict = {}
-        task_dict["task"] = task.get("title")
-        task_dict["completed"] = task.get("completed")
-        task_dict["username"] = employee_name
-        task_list.append(task_dict)
-
-    todos = {"{}".format(id): task_list}
-
-    file_name = "{}.json".format(id)
-    with open(file_name, "a") as fd:
-        json.dump(todos, fd)
-
+base_url = 'https://jsonplaceholder.typicode.com'
 
 if __name__ == "__main__":
-    tasks_done(sys.argv[1])
+
+    user_id = sys.argv[1]
+
+    # get user info e.g https://jsonplaceholder.typicode.com/users/1/
+    user_url = '{}/users?id={}'.format(base_url, user_id)
+    # print("user url is: {}".format(user_url))
+
+    # get info from api
+    response = requests.get(user_url)
+    # pull data from api
+    data = response.text
+    # parse the data into JSON format
+    data = json.loads(data)
+    # extract user data, in this case, username of employee
+    user_name = data[0].get('username')
+    # print("id is: {}".format(user_id))
+    # print("username is: {}".format(user_name))
+
+    # get user info about todo tasks
+    # e.g https://jsonplaceholder.typicode.com/users/1/todos
+    tasks_url = '{}/todos?userId={}'.format(base_url, user_id)
+    # print("tasks url is: {}".format(tasks_url))
+
+    # get info from api
+    response = requests.get(tasks_url)
+    # pull data from api
+    tasks = response.text
+    # parse the data into JSON format
+    tasks = json.loads(tasks)
+    # print("JSOON LOADS IS: {}".format(tasks))
+
+    dict_key = str(user_id)
+    # print("dict_key: {}".format(dict_key))
+
+    # build the json
+    builder = {dict_key: []}
+    for task in tasks:
+        json_data = {
+            "task": task['title'],  # or use get method
+            "completed": task['completed'],
+            "username": user_name
+        }
+        # append dictionary key to the dictionary
+        builder[dict_key].append(json_data)
+    json_encoded_data = json.dumps(builder)
+    with open('{}.json'.format(user_id), 'w', encoding='UTF8') as myFile:
+        myFile.write(json_encoded_data)
